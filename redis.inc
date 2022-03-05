@@ -30,7 +30,14 @@ native int Redis_Get(const char[] key, char[] str, int size);
  */
 native int Redis_Set(const char[] key, const char[] str);
 
-public Extension __ext_test
+/*
+ * Delete key.
+ *
+ * @param key key.
+ */
+native int Redis_Del(const char[] key);
+
+public Extension __ext_redis =
 {
 	name = "redis",
 	file = "redis.ext",
@@ -44,4 +51,12 @@ public Extension __ext_test
 #else
 	required = 0,
 #endif
+}
+
+#if !defined REQUIRE_EXTENSIONS
+public __ext_redis_SetNTVOptional(){
+	MarkNativeAsOptional("Redis_Connect");
+	MarkNativeAsOptional("Redis_Set");
+	MarkNativeAsOptional("Redis_Get");
+	MarkNativeAsOptional("Redis_Del")
 }

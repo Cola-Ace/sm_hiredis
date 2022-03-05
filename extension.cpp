@@ -40,7 +40,7 @@
 redisContext* connect = new redisContext();
 redisReply* reply = new redisReply();
 
-bool redis_Connect(const char* ip, int port) {
+bool Connect(const char* ip, int port) {
 	connect = redisConnect(ip, port);
 	if (connect != NULL && connect->err) {
 		return false;
@@ -48,19 +48,23 @@ bool redis_Connect(const char* ip, int port) {
 	return true;
 }
 
-bool redis_isConnect() {
+bool isConnect() {
 	return connect != NULL && !connect->err;
 }
 
-char* redis_Get(const char* key) {
+char* Get(const char* key) {
 	reply = (redisReply*)redisCommand(connect, "get '%s'", key);
 	char* str = reply->str;
 	freeReplyObject(reply);
 	return str;
 }
 
-void* redis_Set(const char* key, const char* value) {
+void* Set(const char* key, const char* value) {
 	redisCommand(connect, "set '%s' '%s'", key, value);
+}
+
+void* Del(const char* key) {
+	redisCommand(connect, "del '%s'", key);
 }
 
 //Start
@@ -70,28 +74,36 @@ Sample g_Sample;		/**< Global singleton for extension's main interface */
 SMEXT_LINK(&g_Sample);
 
 cell_t Redis_Connect(IPluginContext* pContext, const cell_t* params) {
-	return redis_Connect(const_cast<char*>(reinterpret_cast<char*>(params[1])), params[2]);
+	return Connect(const_cast<char*>(reinterpret_cast<char*>(params[1])), params[2]);
 };
 
 cell_t Redis_Set(IPluginContext* pContext, const cell_t* params) {
-	if (!redis_isConnect()) {
+	if (!isConnect()) {
 		return pContext->ThrowNativeError("Redis is not connect");
 	}
-	redis_Set(const_cast<char*>(reinterpret_cast<char*>(params[1])), const_cast<char*>(reinterpret_cast<char*>(params[2])));
+	Set(const_cast<char*>(reinterpret_cast<char*>(params[1])), const_cast<char*>(reinterpret_cast<char*>(params[2])));
 };
 
 cell_t Redis_Get(IPluginContext* pContext, const cell_t* params) {
-	if (!redis_isConnect()) {
+	if (!isConnect()) {
 		return pContext->ThrowNativeError("Redis is not connect");
 	}
-	char* result = redis_Get(const_cast<char*>(reinterpret_cast<char*>(params[1])));
+	char* result = Get(const_cast<char*>(reinterpret_cast<char*>(params[1])));
 	pContext->StringToLocalUTF8(params[2], params[3], result, 0);
 };
+
+cell_t Redis_Del(IPluginContext* pContext, const cell_t* params) {
+	if (!isConnect()) {
+		return pContext->ThrowNativeError("Redis is not connect");
+	}
+	Del(const_cast<char*>(reinterpret_cast<char*>(params[1])));
+}
 
 const sp_nativeinfo_t MyNatives[] = {
 	{"Redis_Connect", Redis_Connect},
 	{"Redis_Set", Redis_Set},
 	{"Redis_Get", Redis_Get},
+	{"Redis_Del", Redis_Del},
 };
 
 void Sample::SDK_OnAllLoaded() {
